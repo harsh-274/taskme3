@@ -10,6 +10,8 @@ export const postApiSlice = apiSlice.injectEndpoints({
         body: data,
         credentials: "include",
       }),
+      // Invalidate cache after creating a task
+      invalidatesTags: ['Task', 'DashboardStats'],
     }),
 
     duplicateTask: builder.mutation({
@@ -19,6 +21,7 @@ export const postApiSlice = apiSlice.injectEndpoints({
         body: {},
         credentials: "include",
       }),
+      invalidatesTags: ['Task', 'DashboardStats'],
     }),
 
     updateTask: builder.mutation({
@@ -28,6 +31,12 @@ export const postApiSlice = apiSlice.injectEndpoints({
         body: data,
         credentials: "include",
       }),
+      // Invalidate cache after updating a task
+      invalidatesTags: (result, error, data) => [
+        { type: 'Task', id: data._id },
+        { type: 'Task', id: 'LIST' },
+        'DashboardStats'
+      ],
     }),
 
     getAllTask: builder.query({
@@ -36,6 +45,11 @@ export const postApiSlice = apiSlice.injectEndpoints({
         method: "GET",
         credentials: "include",
       }),
+      // Tag this query so it can be invalidated
+      providesTags: (result, error, arg) => [
+        { type: 'Task', id: 'LIST' },
+        ...(result?.tasks || []).map(({ _id }) => ({ type: 'Task', id: _id }))
+      ],
     }),
 
     getSingleTask: builder.query({
@@ -44,6 +58,7 @@ export const postApiSlice = apiSlice.injectEndpoints({
         method: "GET",
         credentials: "include",
       }),
+      providesTags: (result, error, id) => [{ type: 'Task', id }],
     }),
 
     createSubTask: builder.mutation({
@@ -53,6 +68,11 @@ export const postApiSlice = apiSlice.injectEndpoints({
         body: data,
         credentials: "include",
       }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Task', id },
+        { type: 'Task', id: 'LIST' },
+        'DashboardStats'
+      ],
     }),
 
     postTaskActivity: builder.mutation({
@@ -62,6 +82,11 @@ export const postApiSlice = apiSlice.injectEndpoints({
         body: data,
         credentials: "include",
       }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Task', id },
+        { type: 'Task', id: 'LIST' },
+        'DashboardStats'
+      ],
     }),
 
     trashTast: builder.mutation({
@@ -70,6 +95,11 @@ export const postApiSlice = apiSlice.injectEndpoints({
         method: "PUT",
         credentials: "include",
       }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Task', id },
+        { type: 'Task', id: 'LIST' },
+        'DashboardStats'
+      ],
     }),
 
     deleteRestoreTast: builder.mutation({
@@ -78,6 +108,11 @@ export const postApiSlice = apiSlice.injectEndpoints({
         method: "DELETE",
         credentials: "include",
       }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Task', id },
+        { type: 'Task', id: 'LIST' },
+        'DashboardStats'
+      ],
     }),
 
     getDasboardStats: builder.query({
@@ -86,6 +121,8 @@ export const postApiSlice = apiSlice.injectEndpoints({
         method: "GET",
         credentials: "include",
       }),
+      // Tag dashboard stats so they can be invalidated
+      providesTags: ['DashboardStats'],
     }),
 
     changeTaskStage: builder.mutation({
@@ -95,6 +132,34 @@ export const postApiSlice = apiSlice.injectEndpoints({
         body: data,
         credentials: "include",
       }),
+      // Enhanced cache invalidation for stage changes
+      invalidatesTags: (result, error, data) => [
+        { type: 'Task', id: data?.id },
+        { type: 'Task', id: 'LIST' },
+        'DashboardStats'
+      ],
+      // Optional: Optimistic update for better UX
+      async onQueryStarted(data, { dispatch, queryFulfilled }) {
+        // Optimistically update the cache
+        const patchResult = dispatch(
+          postApiSlice.util.updateQueryData('getAllTask', 
+            { strQuery: '', isTrashed: false, search: '' }, 
+            (draft) => {
+              const task = draft.tasks?.find(task => task._id === data.id);
+              if (task) {
+                task.stage = data.stage;
+              }
+            }
+          )
+        );
+        
+        try {
+          await queryFulfilled;
+        } catch {
+          // Revert the optimistic update on error
+          patchResult.undo();
+        }
+      },
     }),
 
     changeSubTaskStatus: builder.mutation({
@@ -104,6 +169,11 @@ export const postApiSlice = apiSlice.injectEndpoints({
         body: data,
         credentials: "include",
       }),
+      invalidatesTags: (result, error, data) => [
+        { type: 'Task', id: data?.id },
+        { type: 'Task', id: 'LIST' },
+        'DashboardStats'
+      ],
     }),
   }),
 });

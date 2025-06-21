@@ -27,6 +27,7 @@ import {
   useChangeSubTaskStatusMutation,
   useGetSingleTaskQuery,
   usePostTaskActivityMutation,
+  useChangeTaskStageMutation,
 } from "../redux/slices/api/taskApiSlice";
 import {
   PRIOTITYSTYELS,
@@ -101,6 +102,7 @@ const Activities = ({ activity, id, refetch }) => {
   const [text, setText] = useState("");
 
   const [postActivity, { isLoading }] = usePostTaskActivityMutation();
+  const [changeStage] = useChangeTaskStageMutation();
 
   const handleSubmit = async () => {
     try {
@@ -112,6 +114,16 @@ const Activities = ({ activity, id, refetch }) => {
         data,
         id,
       }).unwrap();
+
+      if (selected === "Completed" || selected === "In Progress") {
+        await changeStage({
+          id,
+          stage: selected.toLowerCase(),
+        }).unwrap();
+      } else if (selected === "Started") {
+        await changeStage({ id, stage: "todo" }).unwrap();
+      }
+
       setText("");
       toast.success(res?.message);
       refetch();
@@ -152,7 +164,7 @@ const Activities = ({ activity, id, refetch }) => {
         <div className="w-full space-y-0">
           {activity?.map((item, index) => (
             <Card
-              key={item.id}
+              key={item.id || index}
               item={item}
               isConnected={index < activity?.length - 1}
             />
@@ -166,7 +178,7 @@ const Activities = ({ activity, id, refetch }) => {
         </h4>
         <div className="flex flex-wrap w-full gap-5">
           {act_types.map((item, index) => (
-            <div key={item} className="flex items-center gap-2">
+            <div key={index} className="flex items-center gap-2">
               <input
                 type="checkbox"
                 className="w-4 h-4"

@@ -6,6 +6,7 @@ const baseQuery = fetchBaseQuery({ baseUrl: API_URL });
 
 export const apiSlice = createApi({
   baseQuery,
-  tagTypes: [],
+  // ADD THE TAG TYPES HERE - this is what was missing!
+  tagTypes: ['Task', 'DashboardStats', 'User'],
   endpoints: (builder) => ({}),
 });

@@ -25,16 +25,15 @@ const Tasks = () => {
 
   const status = params?.status || "";
 
-  const { data, isLoading, refetch } = useGetAllTaskQuery({
+  const { data, isLoading } = useGetAllTaskQuery({
     strQuery: status,
     isTrashed: "",
     search: searchTerm,
   });
 
   useEffect(() => {
-    refetch();
     window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-  }, [open]);
+  }, []);
 
   return isLoading ? (
     <div className='py-10'>

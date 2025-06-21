@@ -24,7 +24,7 @@ const Table = ({ tasks }) => {
   const [selected, setSelected] = useState(null);
   const [openEdit, setOpenEdit] = useState(false);
 
-  const [deleteTask] = useTrashTastMutation();
+  const [deleteTask, { isLoading: isDeleting }] = useTrashTastMutation();
 
   const deleteClicks = (id) => {
     setSelected(id);
@@ -43,26 +43,27 @@ const Table = ({ tasks }) => {
         isTrashed: "trash",
       }).unwrap();
 
-      toast.success(res?.message);
-
-      setTimeout(() => {
-        setOpenDialog(false);
-        window.location.reload();
-      }, 500);
+      toast.success(res?.message || "Task deleted successfully");
+      
+      // Close dialog immediately since RTK Query will handle the refetch
+      setOpenDialog(false);
+      setSelected(null);
+      
     } catch (err) {
       console.log(err);
-      toast.error(err?.data?.message || err.error);
+      toast.error(err?.data?.message || err.error || "Failed to delete task");
     }
   };
 
   const TableHeader = () => (
     <thead className='w-full border-b border-gray-300 dark:border-gray-600'>
-      <tr className='w-full text-black dark:text-white  text-left'>
+      <tr className='w-full text-black dark:text-white text-left'>
         <th className='py-2'>Task Title</th>
         <th className='py-2'>Priority</th>
         <th className='py-2 line-clamp-1'>Created At</th>
         <th className='py-2'>Assets</th>
         <th className='py-2'>Team</th>
+        <th className='py-2'>Actions</th>
       </tr>
     </thead>
   );
@@ -73,7 +74,7 @@ const Table = ({ tasks }) => {
         <Link to={`/task/${task._id}`}>
           <div className='flex items-center gap-2'>
             <TaskColor className={TASK_TYPE[task.stage]} />
-            <p className='w-full line-clamp-2 text-base text-black'>
+            <p className='w-full line-clamp-2 text-base text-black dark:text-white'>
               {task?.title}
             </p>
           </div>
@@ -85,14 +86,14 @@ const Table = ({ tasks }) => {
           <span className={clsx("text-lg", PRIOTITYSTYELS[task?.priority])}>
             {ICONS[task?.priority]}
           </span>
-          <span className='capitalize line-clamp-1'>
+          <span className='capitalize line-clamp-1 text-gray-700 dark:text-gray-300'>
             {task?.priority} Priority
           </span>
         </div>
       </td>
 
       <td className='py-2'>
-        <span className='text-sm text-gray-600'>
+        <span className='text-sm text-gray-600 dark:text-gray-400'>
           {formatDate(new Date(task?.date))}
         </span>
       </td>
@@ -130,10 +131,14 @@ const Table = ({ tasks }) => {
         />
 
         <Button
-          className='text-red-700 hover:text-red-500 sm:px-0 text-sm md:text-base'
-          label='Delete'
+          className={clsx(
+            'text-red-700 hover:text-red-500 sm:px-0 text-sm md:text-base',
+            isDeleting && 'opacity-50 cursor-not-allowed'
+          )}
+          label={isDeleting ? 'Deleting...' : 'Delete'}
           type='button'
           onClick={() => deleteClicks(task._id)}
+          disabled={isDeleting}
         />
       </td>
     </tr>
@@ -141,13 +146,13 @@ const Table = ({ tasks }) => {
 
   return (
     <>
-      <div className='bg-white  px-2 md:px-4 pt-4 pb-9 shadow-md rounded'>
+      <div className='bg-white dark:bg-gray-800 px-2 md:px-4 pt-4 pb-9 shadow-md rounded'>
         <div className='overflow-x-auto'>
-          <table className='w-full '>
+          <table className='w-full'>
             <TableHeader />
             <tbody>
-              {tasks.map((task, index) => (
-                <TableRow key={index} task={task} />
+              {tasks?.map((task, index) => (
+                <TableRow key={task._id || index} task={task} />
               ))}
             </tbody>
           </table>
@@ -158,13 +163,14 @@ const Table = ({ tasks }) => {
         open={openDialog}
         setOpen={setOpenDialog}
         onClick={deleteHandler}
+        isLoading={isDeleting}
       />
 
       <AddTask
         open={openEdit}
         setOpen={setOpenEdit}
         task={selected}
-        key={new Date().getTime()}
+        key={selected?._id || new Date().getTime()}
       />
     </>
   );

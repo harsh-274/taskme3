@@ -46,10 +46,6 @@ const ChangeTaskActions = forwardRef(({ _id, stage }, ref) => {
       const res = await changeStage(data).unwrap();
 
       toast.success(res?.message);
-
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
     } catch (err) {
       console.log(err);
       toast.error(err?.data?.message || err.error);
@@ -142,11 +138,7 @@ export default function TaskDialog({ task }) {
       }).unwrap();
 
       toast.success(res?.message);
-
-      setTimeout(() => {
-        setOpenDialog(false);
-        window.location.reload();
-      }, 500);
+      setOpenDialog(false);
     } catch (err) {
       console.log(err);
       toast.error(err?.data?.message || err.error);
@@ -158,11 +150,7 @@ export default function TaskDialog({ task }) {
       const res = await duplicateTask(task._id).unwrap();
 
       toast.success(res?.message);
-
-      setTimeout(() => {
-        setOpenDialog(false);
-        window.location.reload();
-      }, 500);
+      setOpenDialog(false);
     } catch (err) {
       console.log(err);
       toast.error(err?.data?.message || err.error);
@@ -223,7 +211,9 @@ export default function TaskDialog({ task }) {
 
               <div className='px-1 py-1'>
                 <Menu.Item>
-                  <ChangeTaskActions id={task._id} {...task} />
+                  {({ active }) => (
+                    <ChangeTaskActions id={task._id} {...task} />
+                  )}
                 </Menu.Item>
               </div>
 
